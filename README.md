@@ -1,73 +1,199 @@
-# React + TypeScript + Vite
+# MKU Cat Reminder 🐱⏰
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A small React + TypeScript app built with Vite to help MKU students (and cat lovers) remember to feed, check on, and take care of the campus cats on time.
 
-Currently, two official plugins are available:
+Use it to:
+- Schedule feeding times
+- Track which cats you’ve seen or fed
+- Get gentle reminders so no cat is forgotten
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Features
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+- 🕒 **Reminders & Schedule** – Keep track of daily/weekly feeding times.  
+- 📋 **Cat List / Profiles** – Store basic info about each cat (name, location, notes).  
+- ✅ **Task Checklists** – Mark tasks as done (fed, water changed, meds, etc.).  
+- 💾 **Local Storage** – Data can be persisted in the browser (no backend required yet).  
+- ⚡ **Fast & Modern** – Built with React, TypeScript, and Vite for a smooth developer experience.
 
-## Expanding the ESLint configuration
+> Note: The exact feature set depends on how far the implementation has gone in this repo. You can adjust this section to match the current UI and code.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Tech Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Framework:** React
+- **Language:** TypeScript
+- **Build Tool:** Vite
+- **Styling:** (Fill in: CSS / Tailwind / MUI / etc.)
+- **Package Manager:** npm / yarn / pnpm (adjust based on what you use)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (recommended: latest LTS)
+- npm / yarn / pnpm installed globally
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Daniel-1600/mku-cat-reminder-.git
+cd mku-cat-reminder-
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Install dependencies:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# choose one
+npm install
+# or
+yarn install
+# or
+pnpm install
 ```
+
+### Running the App in Development
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+```
+
+Vite will print a local URL (usually `http://localhost:5173`). Open it in your browser.
+
+---
+
+## Building for Production
+
+Create an optimized production build:
+
+```bash
+npm run build
+# or
+yarn build
+# or
+pnpm build
+```
+
+Preview the production build locally:
+
+```bash
+npm run preview
+# or
+yarn preview
+# or
+pnpm preview
+```
+
+---
+
+## Project Structure
+
+This is the typical structure for a React + TypeScript + Vite app (actual files may vary):
+
+```text
+mku-cat-reminder-/
+├─ public/              # Static assets
+├─ src/
+│  ├─ components/       # Reusable UI components (e.g. CatCard, ReminderList)
+│  ├─ pages/            # Top-level views/screens
+│  ├─ hooks/            # Custom React hooks (e.g. useReminders, useLocalStorage)
+│  ├─ types/            # TypeScript type definitions & interfaces
+│  ├─ App.tsx           # Root component
+│  ├─ main.tsx          # Entry point
+│  └─ ...               # Other files (styles, utils, etc.)
+├─ index.html
+├─ package.json
+├─ tsconfig.json
+├─ vite.config.ts
+└─ README.md
+```
+
+Adjust this section to exactly match your repo once the structure is finalized.
+
+---
+
+## Development Notes
+
+- **Linting & Formatting:**  
+  If you’ve configured ESLint/Prettier, you can usually run:
+
+  ```bash
+  npm run lint
+  ```
+
+  (Update this command if your `package.json` uses a different script.)
+
+- **Environment Variables:**  
+  If you later add APIs (notifications, backend, etc.), document them here, e.g.:
+
+  ```bash
+  VITE_API_BASE_URL=https://example.com/api
+  ```
+
+  and place them in a `.env` file (which should not be committed if it contains secrets).
+
+---
+
+## Roadmap / Ideas
+
+You can track planned features here:
+
+- [ ] Push/browser notifications for reminders  
+- [ ] Support for multiple locations (different MKU spots)  
+- [ ] Simple login or profiles (if you add a backend)  
+- [ ] Sharing schedules between volunteers  
+- [ ] Dark mode (for late-night cat checks)
+
+---
+
+## Contributing
+
+Contributions are welcome!
+
+1. Fork the repo
+2. Create a feature branch:  
+   ```bash
+   git checkout -b feature/my-new-feature
+   ```
+3. Commit your changes:  
+   ```bash
+   git commit -m "Add some feature"
+   ```
+4. Push the branch:  
+   ```bash
+   git push origin feature/my-new-feature
+   ```
+5. Open a Pull Request
+
+If you’re only using this as a personal project, you can simplify this section or note that it’s mainly for your use.
+
+---
+
+## License
+
+Add your preferred license here (e.g. MIT). Example:
+
+```text
+MIT License
+
+Copyright (c) 2025 Daniel
+```
+
+(Or remove/replace this section if you haven’t chosen a license yet.)
+
+---
+
+## Acknowledgements
+
+- Built with [React](https://react.dev/) + [Vite](https://vitejs.dev/).  
+- Inspired by the cats at MKU and everyone who takes care of them. 🐾
