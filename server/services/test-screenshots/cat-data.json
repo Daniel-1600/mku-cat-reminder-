@@ -1,0 +1,56 @@
+{
+  "scrapedAt": "2025-12-01T17:38:23.950Z",
+  "email": "bit202443623@mylife.mku.ac.ke",
+  "summary": {
+    "total": 3,
+    "pending": 3,
+    "overdue": 0
+  },
+  "pendingCATs": [
+    {
+      "name": "Categories",
+      "url": "",
+      "dueDate": null,
+      "status": "unknown",
+      "daysRemaining": null
+    },
+    {
+      "name": "CAT 2",
+      "url": "",
+      "dueDate": null,
+      "status": "unknown",
+      "daysRemaining": null
+    },
+    {
+      "name": "CAT 1",
+      "url": "",
+      "dueDate": null,
+      "status": "unknown",
+      "daysRemaining": null
+    }
+  ],
+  "overdueCATs": [],
+  "allCATs": [
+    {
+      "name": "Categories",
+      "url": "",
+      "dueDate": null,
+      "status": "unknown",
+      "daysRemaining": null
+    },
+    {
+      "name": "CAT 2",
+      "url": "",
+      "dueDate": null,
+      "status": "unknown",
+      "daysRemaining": null
+    },
+    {
+      "name": "CAT 1",
+      "url": "",
+      "dueDate": null,
+      "status": "unknown",
+      "daysRemaining": null
+    }
+  ]
+}
