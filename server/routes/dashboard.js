@@ -29,7 +29,7 @@ router.get("/", authMiddleware, async (req, res) => {
   try {
     // Get user data from database
     const users = await pool.query(
-      "SELECT id, email, full_name, adm_number FROM users WHERE id = $1",
+      "SELECT id, email, full_name, adm_number, total_courses, completion_rate FROM users WHERE id = $1",
       [req.user.userId]
     );
 
@@ -39,16 +39,36 @@ router.get("/", authMiddleware, async (req, res) => {
 
     const user = users.rows[0];
 
-    // Get user's CATs/deadlines count
-    const catsResult = await pool.query(
-      "SELECT COUNT(*) as total FROM cats WHERE user_id = $1",
+    // Get total courses count from courses table (as backup if user column not updated)
+    let totalCourses = user.total_courses || 0;
+    let completionRate = user.completion_rate || 0;
+
+    try {
+      const coursesResult = await pool.query(
+        "SELECT COUNT(*) as total, COALESCE(AVG(progress), 0) as avg_progress FROM courses WHERE user_id = $1",
+        [req.user.userId]
+      );
+      if (coursesResult.rows[0]?.total > 0) {
+        totalCourses = parseInt(coursesResult.rows[0].total);
+        completionRate = Math.round(
+          parseFloat(coursesResult.rows[0].avg_progress)
+        );
+      }
+    } catch (e) {
+      // Courses table might not exist yet
+      console.log("Courses table not ready:", e.message);
+    }
+
+    // Get upcoming deadlines (CATs within 7 days)
+    const upcomingResult = await pool.query(
+      `SELECT COUNT(*) as upcoming FROM cats 
+       WHERE user_id = $1 AND cat_date >= CURRENT_DATE AND cat_date < CURRENT_DATE + INTERVAL '7 days'`,
       [req.user.userId]
     );
 
-    // Get upcoming deadlines (within 7 days)
-    const upcomingResult = await pool.query(
-      `SELECT COUNT(*) as upcoming FROM cats 
-       WHERE user_id = $1 AND cat_date > CURRENT_DATE AND cat_date < CURRENT_DATE + INTERVAL '7 days'`,
+    // Get total CATs count
+    const catsResult = await pool.query(
+      "SELECT COUNT(*) as total FROM cats WHERE user_id = $1",
       [req.user.userId]
     );
 
@@ -59,12 +79,6 @@ router.get("/", authMiddleware, async (req, res) => {
       [req.user.userId]
     );
 
-    // Calculate completion rate
-    const totalCats = parseInt(catsResult.rows[0]?.total || 0);
-    const overdueCats = parseInt(overdueResult.rows[0]?.overdue || 0);
-    const completionRate =
-      totalCats > 0 ? Math.round((overdueCats / totalCats) * 100) : 0;
-
     res.json({
       user: {
         name: user.full_name,
@@ -73,9 +87,10 @@ router.get("/", authMiddleware, async (req, res) => {
         plan: "Student Plan",
       },
       stats: {
-        totalCATs: totalCats,
+        totalCourses: totalCourses,
+        totalCATs: parseInt(catsResult.rows[0]?.total || 0),
         upcomingDeadlines: parseInt(upcomingResult.rows[0]?.upcoming || 0),
-        overdue: overdueCats,
+        overdue: parseInt(overdueResult.rows[0]?.overdue || 0),
         completionRate: `${completionRate}%`,
         studyHours: "0hrs",
       },

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import CATsList from "./CATsList";
+import CATDeadlines from "../pages/CATDeadlines";
 
 interface UserData {
   name: string;
@@ -11,6 +12,7 @@ interface UserData {
 interface DashboardData {
   user: UserData;
   stats: {
+    totalCourses: number;
     totalCATs: number;
     upcomingDeadlines: number;
     completionRate: string;
@@ -27,6 +29,7 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [showDeadlinesPage, setShowDeadlinesPage] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null
   );
@@ -170,6 +173,7 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
               plan: "Student Plan",
             },
             stats: {
+              totalCourses: 0,
               totalCATs: 0,
               upcomingDeadlines: 0,
               completionRate: "0%",
@@ -202,6 +206,7 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
                 plan: "Student Plan",
               },
               stats: {
+                totalCourses: 0,
                 totalCATs: 0,
                 upcomingDeadlines: 0,
                 completionRate: "0%",
@@ -224,6 +229,7 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
               plan: "Student Plan",
             },
             stats: {
+              totalCourses: 0,
               totalCATs: 0,
               upcomingDeadlines: 0,
               completionRate: "0%",
@@ -262,8 +268,12 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
     );
   }
 
+  // If showing deadlines page, render that instead
+  if (showDeadlinesPage) {
+    return <CATDeadlines onBack={() => setShowDeadlinesPage(false)} />;
+  }
+
   const userName = dashboardData?.user.name || "Student";
-  const userEmail = dashboardData?.user.email || "";
   const userPlan = dashboardData?.user.plan || "Student Plan";
 
   return (
@@ -527,27 +537,35 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
         <div className="px-6 pb-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            {/* Total CATs Card */}
+            {/* Total Courses Card */}
             <div className="bg-[#0d1e36] rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-400 text-sm">Total CATs</span>
+                  <span className="text-gray-400 text-sm">Total Courses</span>
                 </div>
-                <button className="text-gray-500 hover:text-gray-400">⋮</button>
+                <button
+                  className="text-gray-500 hover:text-gray-400"
+                  title="More options"
+                >
+                  ⋮
+                </button>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-4xl font-bold">
-                  {dashboardData?.stats.totalCATs || 0}
+                  {dashboardData?.stats.totalCourses || 0}
                 </span>
                 <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
-                  +0%
+                  {dashboardData?.stats.totalCATs || 0} CATs
                 </span>
               </div>
             </div>
 
-            {/* Upcoming Deadlines Card */}
-            <div className="bg-[#0d1e36] rounded-2xl p-5">
+            {/* Upcoming Deadlines Card - Clickable */}
+            <div
+              onClick={() => setShowDeadlinesPage(true)}
+              className="bg-[#0d1e36] rounded-2xl p-5 cursor-pointer hover:bg-[#1a2d4a] transition-colors"
+            >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
@@ -555,15 +573,29 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
                     Upcoming Deadlines
                   </span>
                 </div>
-                <button className="text-gray-500 hover:text-gray-400">⋮</button>
+                <svg
+                  className="w-4 h-4 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-4xl font-bold">
-                  {dashboardData?.stats.upcomingDeadlines || 0}
+                  {dashboardData?.stats.upcomingDeadlines || "Nil"}
                 </span>
-                <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-md">
-                  0%
-                </span>
+                {(dashboardData?.stats.upcomingDeadlines || 0) > 0 && (
+                  <span className="bg-purple-500/20 text-purple-400 text-xs px-2 py-1 rounded-md">
+                    View all →
+                  </span>
+                )}
               </div>
             </div>
 
@@ -602,149 +634,6 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
                 <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
                   +15.3%
                 </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
-            {/* Main Chart */}
-            <div className="lg:col-span-2 bg-[#0d1e36] rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Study Activity</h2>
-                <select className="bg-[#1a2d4a] text-white text-sm px-4 py-2 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option>Jan 2024 - Dec 2024</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-5 mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-400 text-sm">Hours Studied</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-gray-400 text-sm">CATs Completed</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-3xl font-bold">1,247</span>
-                <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
-                  +24.6% ↗
-                </span>
-              </div>
-
-              {/* Chart Placeholder */}
-              <div className="h-48 bg-gradient-to-t from-blue-500/10 to-transparent rounded-xl flex items-end p-4">
-                <svg
-                  className="w-full h-full"
-                  viewBox="0 0 600 150"
-                  preserveAspectRatio="none"
-                >
-                  {/* Grid Lines */}
-                  <line
-                    x1="0"
-                    y1="37"
-                    x2="600"
-                    y2="37"
-                    stroke="#1a2d4a"
-                    strokeWidth="1"
-                  />
-                  <line
-                    x1="0"
-                    y1="75"
-                    x2="600"
-                    y2="75"
-                    stroke="#1a2d4a"
-                    strokeWidth="1"
-                  />
-                  <line
-                    x1="0"
-                    y1="112"
-                    x2="600"
-                    y2="112"
-                    stroke="#1a2d4a"
-                    strokeWidth="1"
-                  />
-
-                  {/* Blue Line */}
-                  <path
-                    d="M0,120 Q50,115 100,105 T200,90 T300,80 T400,60 T500,45 T600,30"
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="3"
-                  />
-
-                  {/* Red Line */}
-                  <path
-                    d="M0,130 Q50,125 100,120 T200,110 T300,100 T400,85 T500,70 T600,50"
-                    fill="none"
-                    stroke="#ef4444"
-                    strokeWidth="3"
-                  />
-                </svg>
-              </div>
-
-              <div className="flex justify-between mt-4 text-gray-500 text-xs">
-                {[
-                  "Jan",
-                  "Feb",
-                  "Mar",
-                  "Apr",
-                  "May",
-                  "Jun",
-                  "Jul",
-                  "Aug",
-                  "Sep",
-                  "Oct",
-                  "Nov",
-                  "Dec",
-                ].map((month) => (
-                  <span key={month}>{month}</span>
-                ))}
-              </div>
-            </div>
-
-            {/* Sessions Card */}
-            <div className="bg-[#0d1e36] rounded-2xl p-6">
-              <div className="mb-4">
-                <span className="text-gray-400 text-sm">Study Sessions</span>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-5xl font-bold">89</span>
-                  <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
-                    +28.5% ↗
-                  </span>
-                </div>
-              </div>
-
-              {/* Bar Chart */}
-              <div className="flex items-end gap-2 h-36 mb-4">
-                {[30, 25, 35, 40, 60, 75, 85, 70, 90, 80, 65].map(
-                  (height, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-blue-500 rounded-t"
-                      style={{ height: `${height}%` }}
-                    ></div>
-                  )
-                )}
-              </div>
-
-              <div className="flex justify-between text-gray-500 text-[10px] mb-4">
-                <span>12 AM</span>
-                <span>6 AM</span>
-                <span>12 PM</span>
-                <span>6 PM</span>
-                <span>11 PM</span>
-              </div>
-
-              <div className="flex items-center justify-between text-sm text-gray-400">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span>Live</span>
-                </div>
-                <span>Daily avg: 14.9 sessions</span>
               </div>
             </div>
           </div>
