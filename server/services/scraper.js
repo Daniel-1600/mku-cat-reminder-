@@ -4,6 +4,7 @@
 import pool from "../config/db.js";
 import { decrypt } from "../utils/encryption.js";
 import { chromium } from "playwright";
+import { notifyNewCATs, createRemindersForCATs } from "./notifications.js";
 
 // Scrape CATs for a single user
 export async function scrapeCATsForUser(userId) {
@@ -412,59 +413,124 @@ export async function scrapeCATsForUser(userId) {
             `  Found ${courseCats.length} activities in ${course.courseName}`
           );
 
-          // For each CAT found, try to get its deadline by visiting the activity page
+          // For each CAT found, ALWAYS visit the activity page to get exact date/time
           for (const cat of courseCats) {
-            if (cat.href && !cat.date) {
+            if (cat.href) {
               try {
+                console.log(`    Visiting: ${cat.title}`);
                 await page.goto(cat.href, {
                   waitUntil: "networkidle",
-                  timeout: 15000,
+                  timeout: 20000,
                 });
-                await page.waitForTimeout(500);
+                await page.waitForTimeout(1000);
 
-                // Extract date from quiz/assignment page
+                // Extract EXACT date and time from quiz/assignment page
                 const activityDetails = await page.evaluate(() => {
-                  // Look for due date, close date, or deadline
-                  const datePatterns = [
-                    {
-                      selector: '[data-region="activity-dates"]',
-                      attr: "datetime",
-                    },
-                    { selector: ".activity-dates time", attr: "datetime" },
-                    { selector: ".quizinfo", text: true },
-                    { selector: ".submissionstatusdue", text: true },
-                    { selector: 'tr:contains("Close") td', text: true },
-                    { selector: ".info-item", text: true },
-                  ];
-
                   let dateInfo = "";
                   let timeInfo = "";
+                  let fullDateTime = "";
 
-                  // Try to find date information
-                  document.querySelectorAll("time").forEach((el) => {
+                  // Method 1: Look for <time> elements with datetime attribute
+                  const timeElements =
+                    document.querySelectorAll("time[datetime]");
+                  timeElements.forEach((el) => {
                     const dt = el.getAttribute("datetime");
-                    if (dt) dateInfo = dt;
+                    if (dt && !fullDateTime) {
+                      fullDateTime = dt;
+                    }
                   });
 
-                  // Look for text containing dates
-                  const pageText = document.body.innerText;
-                  const dateMatch = pageText.match(
-                    /(?:due|close|deadline|opens?|starts?)[:\s]+(\d{1,2}\s+\w+\s+\d{4}|\d{4}-\d{2}-\d{2})/i
+                  // Method 2: Look for quiz timing information
+                  const quizInfo = document.querySelector(
+                    ".quizinfo, .quiztimer, #quiz-time-left"
                   );
-                  if (dateMatch) {
-                    dateInfo = dateMatch[1];
+                  if (quizInfo) {
+                    const text = quizInfo.textContent;
+                    console.log("Quiz info found:", text);
                   }
 
-                  // Look for time
-                  const timeMatch = pageText.match(
-                    /(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i
+                  // Method 3: Look for "Close" or "Due" dates in Moodle format
+                  const infoRows = document.querySelectorAll(
+                    "tr, .info-item, .activity-instance"
                   );
-                  if (timeMatch) {
-                    timeInfo = timeMatch[1];
+                  infoRows.forEach((row) => {
+                    const text = row.textContent || "";
+                    // Match patterns like "Close: Tuesday, 17 December 2025, 11:59 PM"
+                    // or "Due: 17 December 2025, 2:00 PM"
+                    const closeMatch = text.match(
+                      /(?:Close|Due|Closes|Opens?|Starts?|Deadline)[:\s]*([A-Za-z]+day,?\s*)?(\d{1,2}\s+[A-Za-z]+\s+\d{4})[,\s]+(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i
+                    );
+                    if (closeMatch) {
+                      dateInfo = closeMatch[2];
+                      timeInfo = closeMatch[3];
+                    }
+                  });
+
+                  // Method 4: Search full page text for date patterns
+                  if (!dateInfo) {
+                    const pageText = document.body.innerText;
+
+                    // Pattern: "17 December 2025, 11:59 PM" or "December 17, 2025 at 11:59 PM"
+                    const patterns = [
+                      /(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})[,\s]+(\d{1,2}:\d{2}\s*(?:AM|PM)?)/gi,
+                      /(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}[,\s]+(?:at\s+)?(\d{1,2}:\d{2}\s*(?:AM|PM)?)/gi,
+                      /(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/g,
+                    ];
+
+                    for (const pattern of patterns) {
+                      const match = pageText.match(pattern);
+                      if (match && match[0]) {
+                        // Extract date and time from the match
+                        const fullMatch = match[0];
+                        const dateMatch = fullMatch.match(
+                          /(\d{1,2}\s+[A-Za-z]+\s+\d{4}|\d{4}-\d{2}-\d{2})/
+                        );
+                        const timeMatch = fullMatch.match(
+                          /(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i
+                        );
+                        if (dateMatch) dateInfo = dateMatch[1];
+                        if (timeMatch) timeInfo = timeMatch[1];
+                        break;
+                      }
+                    }
                   }
 
-                  return { date: dateInfo, time: timeInfo };
+                  // Method 5: Look for data attributes
+                  const activityDates = document.querySelector(
+                    '[data-region="activity-dates"]'
+                  );
+                  if (activityDates) {
+                    const timeEl = activityDates.querySelector("time");
+                    if (timeEl) {
+                      fullDateTime = timeEl.getAttribute("datetime") || "";
+                    }
+                  }
+
+                  // Parse fullDateTime if we got it
+                  if (fullDateTime && !dateInfo) {
+                    // ISO format: 2025-12-17T14:00:00+03:00
+                    const isoMatch = fullDateTime.match(
+                      /(\d{4}-\d{2}-\d{2})T?(\d{2}:\d{2})?/
+                    );
+                    if (isoMatch) {
+                      dateInfo = isoMatch[1];
+                      if (isoMatch[2]) timeInfo = isoMatch[2];
+                    }
+                  }
+
+                  return {
+                    date: dateInfo,
+                    time: timeInfo,
+                    fullDateTime: fullDateTime,
+                    pageTitle: document.title,
+                  };
                 });
+
+                console.log(
+                  `      Date found: ${activityDetails.date || "NONE"}, Time: ${
+                    activityDetails.time || "NONE"
+                  }`
+                );
 
                 if (activityDetails.date) {
                   cat.date = activityDetails.date;
@@ -472,8 +538,13 @@ export async function scrapeCATsForUser(userId) {
                 if (activityDetails.time) {
                   cat.time = activityDetails.time;
                 }
+                if (activityDetails.fullDateTime && !cat.date) {
+                  cat.date = activityDetails.fullDateTime;
+                }
               } catch (e) {
-                console.log(`    Could not get details for: ${cat.title}`);
+                console.log(
+                  `    ❌ Could not get details for: ${cat.title} - ${e.message}`
+                );
               }
             }
           }
@@ -721,18 +792,34 @@ export async function scrapeCATsForUser(userId) {
   }
 }
 
-// Save scraped CATs to database
+// Save scraped CATs to database and notify about new ones
 
 async function saveCATsToDatabase(userId, cats) {
   try {
+    // First, get existing CATs to compare
+    const existingResult = await pool.query(
+      `SELECT subject_name, cat_date, cat_number FROM cats WHERE user_id = $1`,
+      [userId]
+    );
+
+    const existingCats = new Set(
+      existingResult.rows.map(
+        (c) => `${c.subject_name}-${c.cat_date}-${c.cat_number}`
+      )
+    );
+
     // Delete old CATs for this user (to avoid duplicates)
     await pool.query("DELETE FROM cats WHERE user_id = $1", [userId]);
 
+    const newCats = [];
+    const insertedCats = [];
+
     // Insert new CATs
     for (const cat of cats) {
-      await pool.query(
+      const result = await pool.query(
         `INSERT INTO cats (user_id, subject_code, subject_name, cat_date, cat_time, venue, cat_number, duration)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
         [
           userId,
           cat.subject_code,
@@ -744,9 +831,28 @@ async function saveCATsToDatabase(userId, cats) {
           cat.duration,
         ]
       );
+
+      insertedCats.push(result.rows[0]);
+
+      // Check if this is a new CAT
+      const catKey = `${cat.subject_name}-${cat.cat_date}-${cat.cat_number}`;
+      if (!existingCats.has(catKey)) {
+        newCats.push(result.rows[0]);
+      }
     }
 
     console.log(`Saved ${cats.length} CATs to database`);
+
+    // Notify user about new CATs
+    if (newCats.length > 0) {
+      console.log(
+        `📢 Found ${newCats.length} NEW CATs - sending notification...`
+      );
+      await notifyNewCATs(userId, newCats);
+    }
+
+    // Create reminders for all CATs
+    await createRemindersForCATs(userId, insertedCats);
   } catch (error) {
     console.error("Error saving CATs to database:", error);
     throw error;

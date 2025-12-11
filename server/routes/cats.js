@@ -219,4 +219,54 @@ router.delete("/:id", authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/cats/schedule-info
+ * Get information about the automatic scraping schedule
+ */
+router.get("/schedule-info", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Get last sync time for this user
+    const lastSyncResult = await pool.query(
+      `SELECT updated_at FROM cats WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1`,
+      [userId]
+    );
+
+    const lastSync = lastSyncResult.rows[0]?.updated_at || null;
+
+    // Calculate next scheduled sync (every 2 days at 6 AM EAT)
+    const now = new Date();
+    const nextSync = new Date();
+    nextSync.setHours(6, 0, 0, 0);
+
+    // If it's past 6 AM today, next sync is tomorrow or day after
+    if (now.getHours() >= 6) {
+      nextSync.setDate(nextSync.getDate() + 1);
+    }
+
+    // Adjust for every 2 days
+    const dayOfMonth = nextSync.getDate();
+    if (dayOfMonth % 2 !== 0) {
+      nextSync.setDate(nextSync.getDate() + 1);
+    }
+
+    res.json({
+      success: true,
+      schedule: {
+        frequency: "Every 2 days at 6:00 AM (East Africa Time)",
+        lastSync: lastSync,
+        nextScheduledSync: nextSync.toISOString(),
+        timezone: "Africa/Nairobi",
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching schedule info:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch schedule info",
+    });
+  }
+});
+
 export default router;
