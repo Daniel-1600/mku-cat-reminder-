@@ -189,35 +189,61 @@ export default function CATsList({
       {/* CATs List */}
       {cats.length === 0 ? (
         <div className="text-center py-12">
-          <div className="text-6xl mb-4">📚</div>
-          <h3 className="text-xl font-semibold mb-2">No CATs Scheduled</h3>
-          <p className={`${darkMode ? "text-gray-400" : "text-gray-600"} mb-4`}>
-            {error?.includes("Portal credentials not connected")
-              ? "You need to connect your MKU portal to sync CAT schedules"
-              : "Click 'Sync Now' to fetch your CAT schedules from the MKU portal"}
-          </p>
-          {error?.includes("Portal credentials not connected") &&
-            onNavigateToPortal && (
-              <button
-                onClick={onNavigateToPortal}
-                className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition inline-flex items-center gap-2"
+          {error?.includes("Portal credentials not connected") ? (
+            <>
+              <div className="text-6xl mb-4">📚</div>
+              <h3 className="text-xl font-semibold mb-2">No CATs Scheduled</h3>
+              <p
+                className={`${
+                  darkMode ? "text-gray-400" : "text-gray-600"
+                } mb-4`}
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                You need to connect your MKU portal to sync CAT schedules
+              </p>
+              {onNavigateToPortal && (
+                <button
+                  onClick={onNavigateToPortal}
+                  className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition inline-flex items-center gap-2"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                Connect Portal Now
-              </button>
-            )}
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  Connect Portal Now
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="text-6xl mb-4">🎉</div>
+              <h3 className="text-2xl font-bold mb-2 text-green-400">
+                All CATs Completed!
+              </h3>
+              <p
+                className={`${
+                  darkMode ? "text-gray-400" : "text-gray-600"
+                } mb-2`}
+              >
+                Congratulations! You have no upcoming CATs.
+              </p>
+              <p
+                className={`${
+                  darkMode ? "text-gray-500" : "text-gray-500"
+                } text-sm`}
+              >
+                Click "Sync Now" to check for new CATs from the portal
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import CATsList from "./CATsList";
 import CATDeadlines from "../pages/CATDeadlines";
+import NotificationSettings from "./NotificationSettings";
 
 interface UserData {
   name: string;
@@ -535,111 +536,221 @@ export default function Dashboard({ onNavigateToPortal }: DashboardProps) {
 
         {/* Content */}
         <div className="px-6 pb-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            {/* Total Courses Card */}
-            <div className="bg-[#0d1e36] rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-400 text-sm">Total Courses</span>
+          {/* Show Notification Settings when notifications tab is active */}
+          {activeNav === "notifications" ? (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold mb-4">Notification Settings</h2>
+              <NotificationSettings darkMode={true} />
+
+              <div className="bg-[#0d1e36] rounded-xl p-6 border border-gray-700">
+                <h3 className="font-semibold text-lg mb-4">
+                  How Notifications Work
+                </h3>
+                <div className="space-y-4 text-gray-400">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-500/20 rounded-lg mt-0.5">
+                      <svg
+                        className="w-4 h-4 text-blue-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">1-Hour Reminder</p>
+                      <p className="text-sm">
+                        Get notified 1 hour before each CAT starts
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-green-500/20 rounded-lg mt-0.5">
+                      <svg
+                        className="w-4 h-4 text-green-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">New CAT Alerts</p>
+                      <p className="text-sm">
+                        Get notified when new CATs are found during sync
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-purple-500/20 rounded-lg mt-0.5">
+                      <svg
+                        className="w-4 h-4 text-purple-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">
+                        Email Notifications
+                      </p>
+                      <p className="text-sm">
+                        Receive email reminders in addition to push
+                        notifications
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  className="text-gray-500 hover:text-gray-400"
-                  title="More options"
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                {/* Total Courses Card */}
+                <div className="bg-[#0d1e36] rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-gray-400 text-sm">
+                        Total Courses
+                      </span>
+                    </div>
+                    <button
+                      className="text-gray-500 hover:text-gray-400"
+                      title="More options"
+                    >
+                      ⋮
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl font-bold">
+                      {dashboardData?.stats.totalCourses || 0}
+                    </span>
+                    <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
+                      {dashboardData?.stats.totalCATs || 0} CATs
+                    </span>
+                  </div>
+                </div>
+
+                {/* Upcoming Deadlines Card - Clickable */}
+                <div
+                  onClick={() => setShowDeadlinesPage(true)}
+                  className="bg-[#0d1e36] rounded-2xl p-5 cursor-pointer hover:bg-[#1a2d4a] transition-colors"
                 >
-                  ⋮
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-4xl font-bold">
-                  {dashboardData?.stats.totalCourses || 0}
-                </span>
-                <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
-                  {dashboardData?.stats.totalCATs || 0} CATs
-                </span>
-              </div>
-            </div>
-
-            {/* Upcoming Deadlines Card - Clickable */}
-            <div
-              onClick={() => setShowDeadlinesPage(true)}
-              className="bg-[#0d1e36] rounded-2xl p-5 cursor-pointer hover:bg-[#1a2d4a] transition-colors"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-gray-400 text-sm">
-                    Upcoming Deadlines
-                  </span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <span className="text-gray-400 text-sm">
+                        Upcoming Deadlines
+                      </span>
+                    </div>
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {(dashboardData?.stats.upcomingDeadlines || 0) === 0 ? (
+                      <>
+                        <span className="text-2xl">🎉</span>
+                        <span className="text-lg font-semibold text-green-400">
+                          All Completed!
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold">
+                          {dashboardData?.stats.upcomingDeadlines}
+                        </span>
+                        <span className="bg-purple-500/20 text-purple-400 text-xs px-2 py-1 rounded-md">
+                          View all →
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <svg
-                  className="w-4 h-4 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-4xl font-bold">
-                  {dashboardData?.stats.upcomingDeadlines || "Nil"}
-                </span>
-                {(dashboardData?.stats.upcomingDeadlines || 0) > 0 && (
-                  <span className="bg-purple-500/20 text-purple-400 text-xs px-2 py-1 rounded-md">
-                    View all →
-                  </span>
-                )}
-              </div>
-            </div>
 
-            {/* Completion Rate Card */}
-            <div className="bg-[#0d1e36] rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-gray-400 text-sm">Completion Rate</span>
+                {/* Completion Rate Card */}
+                <div className="bg-[#0d1e36] rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <span className="text-gray-400 text-sm">
+                        Completion Rate
+                      </span>
+                    </div>
+                    <button className="text-gray-500 hover:text-gray-400">
+                      ⋮
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl font-bold">
+                      {dashboardData?.stats.completionRate || "0%"}
+                    </span>
+                    <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
+                      +8.1%
+                    </span>
+                  </div>
                 </div>
-                <button className="text-gray-500 hover:text-gray-400">⋮</button>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-4xl font-bold">
-                  {dashboardData?.stats.completionRate || "0%"}
-                </span>
-                <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
-                  +8.1%
-                </span>
-              </div>
-            </div>
 
-            {/* Study Hours Card */}
-            <div className="bg-[#0d1e36] rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-400 text-sm">Study Hours</span>
+                {/* Study Hours Card */}
+                <div className="bg-[#0d1e36] rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-gray-400 text-sm">Study Hours</span>
+                    </div>
+                    <button className="text-gray-500 hover:text-gray-400">
+                      ⋮
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl font-bold">
+                      {dashboardData?.stats.studyHours || "0hrs"}
+                    </span>
+                    <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
+                      +15.3%
+                    </span>
+                  </div>
                 </div>
-                <button className="text-gray-500 hover:text-gray-400">⋮</button>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-4xl font-bold">
-                  {dashboardData?.stats.studyHours || "0hrs"}
-                </span>
-                <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-md">
-                  +15.3%
-                </span>
-              </div>
-            </div>
-          </div>
 
-          {/* CATs List */}
-          <CATsList darkMode={true} onNavigateToPortal={onNavigateToPortal} />
+              {/* CATs List */}
+              <CATsList
+                darkMode={true}
+                onNavigateToPortal={onNavigateToPortal}
+              />
+            </>
+          )}
         </div>
       </main>
     </div>

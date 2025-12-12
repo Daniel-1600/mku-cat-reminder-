@@ -18,6 +18,22 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Import push notification functions (lazy load to avoid circular dependency)
+let sendCATReminderPush = null;
+let sendNewCATPush = null;
+
+async function loadPushNotifications() {
+  if (!sendCATReminderPush) {
+    try {
+      const pushModule = await import("../routes/pushNotifications.js");
+      sendCATReminderPush = pushModule.sendCATReminderPush;
+      sendNewCATPush = pushModule.sendNewCATPush;
+    } catch (err) {
+      console.log("Push notifications not available:", err.message);
+    }
+  }
+}
+
 /**
  * Send email notification
  */
@@ -147,6 +163,15 @@ export async function notifyNewCATs(userId, newCats) {
       `🆕 ${newCats.length} New CAT${newCats.length > 1 ? "s" : ""} Found!`,
       html
     );
+
+    // Also send push notification
+    await loadPushNotifications();
+    if (sendNewCATPush) {
+      const pushResult = await sendNewCATPush(userId, newCats);
+      console.log(
+        `📱 Push sent for new CATs: ${pushResult.success} success, ${pushResult.failed} failed`
+      );
+    }
   } catch (error) {
     console.error("Error sending new CATs notification:", error);
   }
@@ -241,6 +266,15 @@ export async function sendCATReminder(userId, cat) {
       `⏰ 1 Hour Left: ${cat.subject_name} CAT ${cat.cat_number}`,
       html
     );
+
+    // Also send push notification
+    await loadPushNotifications();
+    if (sendCATReminderPush) {
+      const pushResult = await sendCATReminderPush(userId, cat);
+      console.log(
+        `📱 Push reminder sent: ${pushResult.success} success, ${pushResult.failed} failed`
+      );
+    }
 
     // Mark reminder as sent
     await pool.query(

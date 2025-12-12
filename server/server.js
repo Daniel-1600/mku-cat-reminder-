@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.js";
 import portalRoutes from "./routes/portal.js";
 import catsRoutes from "./routes/cats.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import pushNotificationRoutes from "./routes/pushNotifications.js";
 import { scrapeAllUsers } from "./services/scraper.js";
 import { checkAndSendReminders } from "./services/notifications.js";
 
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/portal", portalRoutes);
 app.use("/api/cats", catsRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/notifications", pushNotificationRoutes);
 
 // Health check
 app.get("/", (req, res) => {
