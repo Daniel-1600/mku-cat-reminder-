@@ -76,7 +76,10 @@ function App() {
           onConnect={() => setCurrentPage("dashboard")}
         />
       ) : (
-        <DashboardOmani onNavigateToPortal={() => setCurrentPage("portal")} />
+        <DashboardOmani
+          onNavigateToPortal={() => setCurrentPage("portal")}
+          onNavigateToHome={() => setCurrentPage("hero")}
+        />
       )}
     </div>
   );
