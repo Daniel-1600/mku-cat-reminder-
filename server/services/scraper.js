@@ -5,6 +5,85 @@ import pool from "../config/db.js";
 import { decrypt } from "../utils/encryption.js";
 import { chromium } from "playwright";
 import { notifyNewCATs, createRemindersForCATs } from "./notifications.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Get directory path for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Session storage directory - stores cookies/sessions per user for up to 90 days
+const SESSIONS_DIR = path.join(__dirname, "..", "sessions");
+const SESSION_MAX_AGE_DAYS = 90;
+
+// Ensure sessions directory exists
+if (!fs.existsSync(SESSIONS_DIR)) {
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+}
+
+// Get session file path for a user
+function getSessionPath(userId) {
+  return path.join(SESSIONS_DIR, `session-${userId}.json`);
+}
+
+// Check if session file exists and is not expired
+function isSessionValid(userId) {
+  const sessionPath = getSessionPath(userId);
+  if (!fs.existsSync(sessionPath)) {
+    return false;
+  }
+
+  try {
+    const stats = fs.statSync(sessionPath);
+    const ageInDays = (Date.now() - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+
+    // Session is valid if less than SESSION_MAX_AGE_DAYS old
+    if (ageInDays < SESSION_MAX_AGE_DAYS) {
+      console.log(
+        `Found valid session for user ${userId} (${Math.round(
+          ageInDays
+        )} days old)`
+      );
+      return true;
+    }
+
+    console.log(
+      `Session for user ${userId} expired (${Math.round(ageInDays)} days old)`
+    );
+    // Delete expired session
+    fs.unlinkSync(sessionPath);
+    return false;
+  } catch (error) {
+    console.log(`Error checking session for user ${userId}:`, error.message);
+    return false;
+  }
+}
+
+// Save session state to file
+async function saveSession(context, userId) {
+  try {
+    const sessionPath = getSessionPath(userId);
+    const storageState = await context.storageState();
+    fs.writeFileSync(sessionPath, JSON.stringify(storageState, null, 2));
+    console.log(`Saved session for user ${userId}`);
+  } catch (error) {
+    console.log(`Failed to save session for user ${userId}:`, error.message);
+  }
+}
+
+// Delete session file (e.g., on login failure)
+function deleteSession(userId) {
+  try {
+    const sessionPath = getSessionPath(userId);
+    if (fs.existsSync(sessionPath)) {
+      fs.unlinkSync(sessionPath);
+      console.log(`Deleted session for user ${userId}`);
+    }
+  } catch (error) {
+    console.log(`Failed to delete session for user ${userId}:`, error.message);
+  }
+}
 
 // Scrape CATs for a single user
 export async function scrapeCATsForUser(userId) {
@@ -43,13 +122,32 @@ export async function scrapeCATsForUser(userId) {
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
-    const context = await browser.newContext({
+    // Check if we have a valid saved session
+    const hasValidSession = isSessionValid(userId);
+    const sessionPath = getSessionPath(userId);
+
+    // Context options with session restoration if available
+    const contextOptions = {
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       viewport: { width: 1366, height: 768 },
       locale: "en-KE",
       timezoneId: "Africa/Nairobi",
-    });
+    };
+
+    // Load existing session if available
+    if (hasValidSession) {
+      try {
+        const sessionData = JSON.parse(fs.readFileSync(sessionPath, "utf-8"));
+        contextOptions.storageState = sessionData;
+        console.log("Loaded existing session with cookies");
+      } catch (error) {
+        console.log("Failed to load session, will login fresh:", error.message);
+        deleteSession(userId);
+      }
+    }
+
+    const context = await browser.newContext(contextOptions);
 
     // Add stealth scripts to avoid bot detection
     await context.addInitScript(() => {
@@ -65,16 +163,48 @@ export async function scrapeCATsForUser(userId) {
     const page = await context.newPage();
 
     try {
-      console.log("Navigating to login page...");
-      await page.goto(LOGIN_URL, { waitUntil: "networkidle", timeout: 60000 });
+      // First, try to access the dashboard directly (if session is valid, we're already logged in)
+      let needsLogin = true;
+
+      if (hasValidSession) {
+        console.log("Testing if saved session is still valid...");
+        try {
+          await page.goto(DASHBOARD_URL, {
+            waitUntil: "networkidle",
+            timeout: 30000,
+          });
+          const afterUrl = page.url();
+
+          // Check if we're on the dashboard (not redirected to login)
+          if (afterUrl.includes("/my/") && !afterUrl.includes("login")) {
+            console.log("✅ Session still valid! Skipping login.");
+            needsLogin = false;
+          } else {
+            console.log("Session expired, need to re-login");
+            deleteSession(userId);
+          }
+        } catch (error) {
+          console.log("Session check failed, will login fresh:", error.message);
+          deleteSession(userId);
+        }
+      }
+
+      if (needsLogin) {
+        console.log("Navigating to login page...");
+        await page.goto(LOGIN_URL, {
+          waitUntil: "networkidle",
+          timeout: 60000,
+        });
+      }
 
       // Check if redirected to Microsoft OAuth
       const currentUrl = page.url();
       console.log(`Current URL: ${currentUrl}`);
 
       if (
-        currentUrl.includes("microsoftonline.com") ||
-        currentUrl.includes("login.microsoft")
+        needsLogin &&
+        (currentUrl.includes("microsoftonline.com") ||
+          currentUrl.includes("login.microsoft"))
       ) {
         // ============================================
         // MICROSOFT OAUTH LOGIN FLOW (Multi-step)
@@ -88,6 +218,17 @@ export async function scrapeCATsForUser(userId) {
         await page.click('input[type="submit"]');
         await page.waitForTimeout(3000);
 
+        // Check for email/username error
+        const usernameError = await page.$("#usernameError");
+        if (usernameError) {
+          const errorText = await usernameError.textContent();
+          if (errorText && errorText.trim()) {
+            await page.screenshot({ path: "./debug-username-error.png" });
+            deleteSession(userId);
+            throw new Error(`Microsoft login failed: ${errorText.trim()}`);
+          }
+        }
+
         // Step 2: Enter password
         console.log("Entering password...");
         await page.waitForSelector('input[type="password"]', {
@@ -99,6 +240,19 @@ export async function scrapeCATsForUser(userId) {
         // Wait for either redirect or "Stay signed in?" prompt
         console.log("Waiting for response after password...");
         await page.waitForTimeout(5000);
+
+        // Check immediately for password error
+        const passwordError = await page.$("#passwordError");
+        if (passwordError) {
+          const errorText = await passwordError.textContent();
+          if (errorText && errorText.trim()) {
+            await page.screenshot({ path: "./debug-password-error.png" });
+            deleteSession(userId);
+            throw new Error(
+              `Microsoft login failed - wrong password: ${errorText.trim()}`
+            );
+          }
+        }
 
         // Handle "Stay signed in?" prompt - try multiple selectors
         try {
@@ -143,37 +297,125 @@ export async function scrapeCATsForUser(userId) {
           }
 
           // Check for login errors on Microsoft page
-          if (currentUrl.includes("login.microsoftonline.com/common/login")) {
-            // Check for error messages
-            const errorText = await page.evaluate(() => {
-              const errorEl = document.querySelector(
-                '#usernameError, #passwordError, .alert-error, [role="alert"]'
-              );
-              return errorEl ? errorEl.textContent : null;
+          if (currentUrl.includes("microsoftonline.com")) {
+            // Check for various error messages on Microsoft login
+            const errorInfo = await page.evaluate(() => {
+              // Check multiple possible error selectors
+              const errorSelectors = [
+                "#usernameError",
+                "#passwordError",
+                ".alert-error",
+                '[role="alert"]',
+                "#passwordError",
+                ".ext-error",
+                "#error",
+                ".error-text",
+                "#errorText",
+                "#service_exception_message",
+              ];
+
+              for (const selector of errorSelectors) {
+                const el = document.querySelector(selector);
+                if (el && el.textContent.trim()) {
+                  return { type: "error", message: el.textContent.trim() };
+                }
+              }
+
+              // Check if password field has error state
+              const pwdInput = document.querySelector('input[type="password"]');
+              if (
+                pwdInput &&
+                pwdInput.getAttribute("aria-invalid") === "true"
+              ) {
+                const pwdError = document.querySelector(
+                  '#passwordError, [id*="password"][id*="error"]'
+                );
+                if (pwdError)
+                  return {
+                    type: "password_error",
+                    message: pwdError.textContent.trim(),
+                  };
+              }
+
+              // Check for "Your account or password is incorrect" message
+              const bodyText = document.body.innerText;
+              if (
+                bodyText.includes("password is incorrect") ||
+                bodyText.includes("account doesn't exist")
+              ) {
+                return {
+                  type: "credential_error",
+                  message: "Your account or password is incorrect",
+                };
+              }
+
+              // Check for MFA/verification prompts
+              if (
+                bodyText.includes("Verify your identity") ||
+                bodyText.includes("More information required")
+              ) {
+                return {
+                  type: "mfa_required",
+                  message: "Multi-factor authentication required",
+                };
+              }
+
+              return null;
             });
 
-            if (errorText) {
-              console.log(`Login error detected: ${errorText}`);
+            if (errorInfo) {
+              console.log(
+                `Login error detected (${errorInfo.type}): ${errorInfo.message}`
+              );
               await page.screenshot({ path: "./debug-login-error.png" });
-              throw new Error(`Microsoft login failed: ${errorText}`);
+              deleteSession(userId);
+              throw new Error(`Microsoft login failed: ${errorInfo.message}`);
             }
 
-            // If we're still on the login page after 15 seconds, something is wrong
-            if (i >= 3) {
+            // If we're still on the login page after 20 seconds, something is wrong
+            if (i >= 4) {
               stuckOnLogin = true;
               console.log(
                 "Still on login page - taking screenshot for debugging..."
               );
               await page.screenshot({ path: "./debug-login-stuck.png" });
 
-              // Get page content for debugging
+              // Get more detailed page content for debugging
               const pageTitle = await page.title();
-              const bodyText = await page.evaluate(() =>
-                document.body.innerText.substring(0, 500)
-              );
-              console.log(`Page title: ${pageTitle}`);
-              console.log(`Page content preview: ${bodyText}`);
+              const debugInfo = await page.evaluate(() => {
+                // Get visible text, excluding footer/terms links
+                const main = document.querySelector(
+                  'main, [role="main"], .middle, #lightbox'
+                );
+                const mainText = main
+                  ? main.innerText.substring(0, 800)
+                  : document.body.innerText.substring(0, 800);
 
+                // Check what input fields are visible
+                const inputs = Array.from(
+                  document.querySelectorAll('input:not([type="hidden"])')
+                ).map((i) => ({
+                  type: i.type,
+                  name: i.name || i.id,
+                  visible: i.offsetParent !== null,
+                }));
+
+                // Check for any buttons
+                const buttons = Array.from(
+                  document.querySelectorAll('button, input[type="submit"]')
+                ).map((b) => b.innerText || b.value);
+
+                return { mainText, inputs, buttons };
+              });
+
+              console.log(`Page title: ${pageTitle}`);
+              console.log(
+                `Visible inputs: ${JSON.stringify(debugInfo.inputs)}`
+              );
+              console.log(`Buttons: ${JSON.stringify(debugInfo.buttons)}`);
+              console.log(`Page content: ${debugInfo.mainText}`);
+
+              deleteSession(userId);
               throw new Error(
                 `Login failed - stuck on Microsoft login page. Check debug-login-stuck.png`
               );
@@ -226,12 +468,17 @@ export async function scrapeCATsForUser(userId) {
         afterLoginUrl.includes("login") &&
         !afterLoginUrl.includes("vlms.mku.ac.ke/my")
       ) {
+        // Delete any existing session since login failed
+        deleteSession(userId);
         throw new Error(
           "Login failed - invalid credentials or still on login page"
         );
       }
 
       console.log(`Login successful! Current URL: ${afterLoginUrl}`);
+
+      // Save session after successful login (cookies will persist for up to 90 days)
+      await saveSession(context, userId);
 
       // ============================================
       // STEP 1: SCRAPE ALL ENROLLED COURSES

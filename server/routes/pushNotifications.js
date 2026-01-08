@@ -1,7 +1,5 @@
-/**
- * Push Notification Routes
- * Handles push subscription management and sending push notifications
- */
+// Push Notification Routes
+// Handles push subscription management and sending push notifications
 
 import express from "express";
 import webPush from "web-push";
@@ -29,10 +27,9 @@ if (vapidPublicKey && vapidPrivateKey) {
   console.warn("⚠️ VAPID keys not configured - push notifications disabled");
 }
 
-/**
- * Subscribe to push notifications
- * POST /api/notifications/subscribe
- */
+// Subscribe to push notifications
+// POST /api/notifications/subscribe
+
 router.post("/subscribe", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
