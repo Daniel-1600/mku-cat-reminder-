@@ -598,7 +598,7 @@ export default function Dashboard({
             </svg>
           </button>
 
-          <h1 className="text-2xl lg:text-3xl font-semibold">
+          <h1 className="text-xl lg:text-2xl font-semibold">
             Welcome back, {userName.split(" ")[0]}
           </h1>
 
@@ -619,7 +619,7 @@ export default function Dashboard({
               </svg>
               Export data
             </button>
-            <button className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-colors">
+            <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors">
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -671,8 +671,8 @@ export default function Dashboard({
                   />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Analytics</h2>
-              <p className="text-gray-400 text-lg mb-4">Coming Soon</p>
+              <h2 className="text-xl font-bold text-white mb-2">Analytics</h2>
+              <p className="text-gray-400 text-base mb-4">Coming Soon</p>
               <p className="text-gray-500 text-center max-w-md">
                 Track your study progress, CAT performance trends, and get
                 personalized insights to improve your academic performance.
@@ -695,8 +695,8 @@ export default function Dashboard({
                   />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Reports</h2>
-              <p className="text-gray-400 text-lg mb-4">Coming Soon</p>
+              <h2 className="text-xl font-bold text-white mb-2">Reports</h2>
+              <p className="text-gray-400 text-base mb-4">Coming Soon</p>
               <p className="text-gray-500 text-center max-w-md">
                 Generate detailed reports of your CAT schedule, completed
                 assessments, and academic progress to share with advisors.
@@ -704,11 +704,11 @@ export default function Dashboard({
             </div>
           ) : activeNav === "notifications" ? (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold mb-4">Notification Settings</h2>
+              <h2 className="text-xl font-bold mb-4">Notification Settings</h2>
               <NotificationSettings darkMode={true} />
 
               <div className="bg-[#0d1e36] rounded-xl p-6 border border-gray-700">
-                <h3 className="font-semibold text-lg mb-4">
+                <h3 className="font-semibold text-base mb-4">
                   How Notifications Work
                 </h3>
                 <div className="space-y-4 text-gray-400">
