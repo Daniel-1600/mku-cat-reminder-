@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import CATsList from "./CATsList";
 import CATDeadlines from "../pages/CATDeadlines";
 import NotificationSettings from "./NotificationSettings";
+import CourseMates from "./CourseMates";
+import Messages from "./Messages";
+import ProfileSettings from "./ProfileSettings";
 
 interface UserData {
   name: string;
@@ -39,6 +42,16 @@ export default function Dashboard({
     null
   );
   const [loading, setLoading] = useState(true);
+  // Chat state for opening messages from course mates
+  const [chatUserId, setChatUserId] = useState<string | null>(null);
+  const [chatUserName, setChatUserName] = useState<string>("");
+
+  // Handler to open chat from CourseMates
+  const handleOpenChat = (userId: string, userName: string) => {
+    setChatUserId(userId);
+    setChatUserName(userName);
+    setActiveNav("messages");
+  };
 
   const navItems = [
     {
@@ -118,6 +131,44 @@ export default function Dashboard({
       label: "Reports",
     },
     {
+      id: "coursemates",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+          />
+        </svg>
+      ),
+      label: "Course Mates",
+    },
+    {
+      id: "messages",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+          />
+        </svg>
+      ),
+      label: "Messages",
+    },
+    {
       id: "notifications",
       icon: (
         <svg
@@ -160,6 +211,25 @@ export default function Dashboard({
         </svg>
       ),
       label: "Settings",
+    },
+    {
+      id: "profile",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+          />
+        </svg>
+      ),
+      label: "My Profile",
     },
     {
       id: "home",
@@ -570,8 +640,69 @@ export default function Dashboard({
 
         {/* Content */}
         <div className="px-6 pb-6">
-          {/* Show Notification Settings when notifications tab is active */}
-          {activeNav === "notifications" ? (
+          {/* Show Course Mates when coursemates tab is active */}
+          {activeNav === "coursemates" ? (
+            <CourseMates onOpenChat={handleOpenChat} />
+          ) : activeNav === "messages" ? (
+            <Messages
+              initialUserId={chatUserId || undefined}
+              initialUserName={chatUserName}
+              onBack={() => {
+                setChatUserId(null);
+                setChatUserName("");
+              }}
+            />
+          ) : activeNav === "profile" ? (
+            <ProfileSettings />
+          ) : activeNav === "analytics" ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-full flex items-center justify-center mb-6">
+                <svg
+                  className="w-12 h-12 text-purple-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Analytics</h2>
+              <p className="text-gray-400 text-lg mb-4">Coming Soon</p>
+              <p className="text-gray-500 text-center max-w-md">
+                Track your study progress, CAT performance trends, and get
+                personalized insights to improve your academic performance.
+              </p>
+            </div>
+          ) : activeNav === "reports" ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-24 h-24 bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-full flex items-center justify-center mb-6">
+                <svg
+                  className="w-12 h-12 text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Reports</h2>
+              <p className="text-gray-400 text-lg mb-4">Coming Soon</p>
+              <p className="text-gray-500 text-center max-w-md">
+                Generate detailed reports of your CAT schedule, completed
+                assessments, and academic progress to share with advisors.
+              </p>
+            </div>
+          ) : activeNav === "notifications" ? (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold mb-4">Notification Settings</h2>
               <NotificationSettings darkMode={true} />
