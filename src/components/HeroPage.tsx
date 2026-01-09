@@ -37,12 +37,6 @@ export default function HeroPage({ onNavigateToAuth }: HeroPageProps) {
     },
   ];
 
-  const stats = [
-    { value: "5000+", label: "Active Students" },
-    { value: "98%", label: "On-Time Submissions" },
-    { value: "24/7", label: "Smart Reminders" },
-  ];
-
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
       {/* Subtle Animated Background */}
@@ -366,7 +360,7 @@ export default function HeroPage({ onNavigateToAuth }: HeroPageProps) {
       {/* Footer */}
       <footer className="relative z-10 border-t border-gray-800 mt-20">
         <div className="max-w-7xl mx-auto px-6 py-16">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
+          {/* <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-md flex items-center justify-center text-xl">
@@ -404,7 +398,7 @@ export default function HeroPage({ onNavigateToAuth }: HeroPageProps) {
                 </ul>
               </div>
             ))}
-          </div>
+          </div> */}
 
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-500 text-sm">

@@ -1154,18 +1154,34 @@ async function saveCoursesToDatabase(userId, courses) {
   }
 }
 
-// Scrape CATs for all connected users
+// Scrape CATs for all connected users based on their frequency preferences
 export async function scrapeAllUsers() {
   try {
-    const result = await pool.query(
-      "SELECT id FROM users WHERE portal_connected = true"
-    );
+    // Get users whose scrape is due based on their frequency preference
+    const result = await pool.query(`
+      SELECT id, scrape_frequency, last_scraped_at FROM users 
+      WHERE portal_connected = true
+      AND (
+        last_scraped_at IS NULL
+        OR (scrape_frequency = 'daily' AND last_scraped_at < NOW() - INTERVAL '1 day')
+        OR (scrape_frequency = 'every_2_days' AND last_scraped_at < NOW() - INTERVAL '2 days')
+        OR (scrape_frequency = 'every_3_days' AND last_scraped_at < NOW() - INTERVAL '3 days')
+        OR (scrape_frequency = 'weekly' AND last_scraped_at < NOW() - INTERVAL '7 days')
+        OR scrape_frequency IS NULL
+      )
+    `);
 
-    console.log(`Found ${result.rows.length} users with connected portals`);
+    console.log(`Found ${result.rows.length} users due for scraping`);
 
     for (const user of result.rows) {
       try {
         await scrapeCATsForUser(user.id);
+
+        // Update last_scraped_at after successful scrape
+        await pool.query(
+          "UPDATE users SET last_scraped_at = NOW() WHERE id = $1",
+          [user.id]
+        );
       } catch (error) {
         console.error(`Failed to scrape for user ${user.id}:`, error.message);
         // Continue with next user

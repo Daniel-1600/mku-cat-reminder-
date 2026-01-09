@@ -126,4 +126,61 @@ router.get("/credentials/:userId", async (req, res) => {
   }
 });
 
+// Get user's scrape frequency settings
+router.get("/scrape-settings", authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+
+  try {
+    const result = await pool.query(
+      `SELECT scrape_frequency, last_scraped_at 
+       FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = result.rows[0];
+
+    res.status(200).json({
+      scrapeFrequency: user.scrape_frequency || "every_2_days",
+      lastScrapedAt: user.last_scraped_at || null,
+    });
+  } catch (error) {
+    console.error("Error getting scrape settings:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update user's scrape frequency preference
+router.put("/scrape-settings", authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  const { scrapeFrequency } = req.body;
+
+  // Validate frequency option
+  const validOptions = ["daily", "every_2_days", "every_3_days", "weekly"];
+  if (!validOptions.includes(scrapeFrequency)) {
+    return res.status(400).json({
+      message:
+        "Invalid frequency. Choose from: daily, every_2_days, every_3_days, weekly",
+    });
+  }
+
+  try {
+    await pool.query(`UPDATE users SET scrape_frequency = $1 WHERE id = $2`, [
+      scrapeFrequency,
+      userId,
+    ]);
+
+    res.status(200).json({
+      message: "Scrape frequency updated successfully",
+      scrapeFrequency,
+    });
+  } catch (error) {
+    console.error("Error updating scrape settings:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

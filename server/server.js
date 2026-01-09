@@ -34,12 +34,13 @@ app.get("/", (req, res) => {
 
 // ============================================
 // AUTOMATIC SCHEDULED SCRAPING
-// Runs every 2 days at 6:00 AM East Africa Time
+// Runs daily at 6:00 AM East Africa Time
+// Users are scraped based on their individual frequency preferences
 // Cron format: minute hour day-of-month month day-of-week
-// "0 6 */2 * *" = At 06:00 on every 2nd day
+// "0 6 * * *" = At 06:00 every day
 // ============================================
 cron.schedule(
-  "0 6 */2 * *",
+  "0 6 * * *",
   async () => {
     console.log("\n========================================");
     console.log("🔄 SCHEDULED SCRAPE - Starting automatic portal sync");
